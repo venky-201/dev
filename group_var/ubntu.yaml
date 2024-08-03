@@ -1,0 +1,8 @@
+## in groups_var mention varibles for the playbook
+java_package: openjdk-11-jdk
+user_name: ubntu
+group_name: ubntu
+home_dir: /opt/tomcat
+default_shell: /bin/false
+tomcat_version: "10.1.26"
+java_home: /usr/lib/jvm/java-11-openjdk-amd64

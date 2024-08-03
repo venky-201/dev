@@ -1,0 +1,8 @@
+### invenry file node names or else ip adress
+## we should metion gruops like [webservers][db servers] every group ipaddress
+## ansible is iac tool is used to configure software and infra provising in mltipull number of target nodes by run playbooks its 
+
+---
+node2
+local host
+

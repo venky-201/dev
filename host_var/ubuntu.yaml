@@ -1,0 +1,28 @@
+- name: installing tomacat 
+  host: all
+  become: yes
+  task: 
+   - name: update packages and install java
+     ansible.builtin.apt:
+      name: "{{ java_package }}"
+      update_cache: yes
+      state: present
+   - name: create group tomacat
+     ansible.builtin.group:
+     name: "{{ group_name }}"
+     state: present
+   - name: create a system user tomcat
+     ansible.builtin.user:
+        name: "{{ user_name }}"
+        create_home: true
+        group: "{{ group_name }}"
+        home: "{{ home_dir }}"
+        shell: "{{ default_shell }}"
+        state: present
+   - name: download and extract tomcat
+     ansible.builtin.unarchive:
+      src: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+      dest: "{{ home_dir }}"
+      owner: "{{ user_name }}"
+      group: "{{ group_name }}"
+      remote_src: yes
