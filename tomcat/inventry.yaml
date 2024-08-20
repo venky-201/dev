@@ -1,0 +1,6 @@
+### invenry file node names or else ip adress
+##we should metion gruops like [webservers][db servers] every group ipaddress
+---
+node2
+local host
+
