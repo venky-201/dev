@@ -26,3 +26,47 @@
       owner: "{{ user_name }}"
       group: "{{ group_name }}"
       remote_src: yes
+   - name: create sybalic link
+     ansible.builtin.file:
+     src: "{{ home_dir }}/apache-tomcat-{{ tomcat_version }}"
+     dest: "{{ home_dir }}/latest"
+     owner: "{{ user_name }}"
+     group: "{{ group_name }}"
+     state: link
+   - name: change owner ship permissions recursively
+     ansible.builtin.file:
+     path: "{{ home_dir }}"
+     state: directory
+     recurse: yes
+     owner: "{{ user_name }}"
+     group: "{{ group_name }}"
+   - name: execute permissions to shell files ## executable permission to all sh folders
+     cmd: "chmod +x /opt/tomcat/updated/bin/*.sh"
+     executable: "bin/bash"
+   - name: create service file
+     ansible.builtin.copy: ## copy service file into diserd path
+     src: tomcat.service
+     dest: etc/systemd/system/tomcat.service
+   - name: enable and run the tomcat.service
+     ansiansible.builtin.systemd:
+     name: tomcat.service
+     enable: yes
+     state: started
+   - name: update user
+     ansible.builtin.copy: 
+     src: tomcat-user.xml
+     dest: "{{ home_dir }}/latest/conf/tomcat-users.xml"
+   - name: manager-contaxt.xml 
+     ansible.builtin.copy: 
+     src: manager-contaxt.xml
+     dest: "{{ home_dir }}/latest/webapps/manager/META-INF/context.xml"
+   - name: hostmanager-contaxt.xml 
+     ansible.builtin.copy: 
+     src: hostmanager-contaxt.xml
+     dest: "{{ home_dir }}/latest/webapps/host-manager/META-INF/context.xml"
+   - name: restart tomcat
+     ansiansible.builtin.systemd:
+     name: tomcat.service
+     state: restart
+
+

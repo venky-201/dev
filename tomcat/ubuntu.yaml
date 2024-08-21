@@ -1,0 +1,88 @@
+- name: installing tomacat 
+  host: all
+  become: yes
+  task: 
+   - name: this playbook executed  only ubuntu distibution
+     ansible.builtin.fail:
+      msg: "this playbook run in ubuntu "
+     when:
+      ansible_facts['distibution'] != 'ubuntu'
+   - name: update packages and install java
+     ansible.builtin.apt:
+      name: "{{ java_package }}"
+      update_cache: yes
+      state: present
+   - name: create group tomacat
+     ansible.builtin.group:
+     name: "{{ group_name }}"
+     state: present
+   - name: create a system user tomcat
+     ansible.builtin.user:
+        name: "{{ user_name }}"
+        create_home: true
+        group: "{{ group_name }}"
+        home: "{{ home_dir }}"
+        shell: "{{ default_shell }}"
+        state: present
+   - name: folder stats of tomcatfile
+     ansible.builtin.stats:
+      path: "{{ home_dir }}/apache-tomcat-{{ tomcat_version }}"
+     register: tomcat-file  #stored output  ofthe file
+   - name: Print a debug message
+     debug:
+      var: tomcat-file.stat.exists
+   - name: download and extract tomcat
+     ansible.builtin.unarchive:
+      src: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+      dest: "{{ home_dir }}"
+      owner: "{{ user_name }}"
+      group: "{{ group_name }}"
+      remote_src: yes
+     when: tomcat-file.stat.exists==false # condition says when .tar file not present path its down load file and its apply premission to that folder.  
+     notify: 
+      - execute permissions to shell files
+   - name: create sybalic link
+     ansible.builtin.file:
+     src: "{{ home_dir }}/apache-tomcat-{{ tomcat_version }}"
+     dest: "{{ home_dir }}/latest"
+     owner: "{{ user_name }}"
+     group: "{{ group_name }}"
+     state: link
+   - name: change owner ship permissions recursively
+     ansible.builtin.file:
+     path: "{{ home_dir }}"
+     state: directory
+     recurse: yes
+     owner: "{{ user_name }}"
+     group: "{{ group_name }}"
+   - name: create service file
+     ansible.builtin.template: ## copy service file into diserd path we are using template module we are giving dynamic values in the service file.
+     src: tomcat.service.j2
+     dest: etc/systemd/system/tomcat.service
+     notify:
+     - restart tomcat
+   - name: enable and run the tomcat.service
+     ansible.builtin.systemd:
+      name: tomcat.service
+      enable: yes
+      state: started
+   - name: update configaration
+     ansible.builtin.copy:
+      src: "{{item.src}}"
+      dest: "{{item.dest}}"
+     loop:
+      - {src: "tomcat-user.xml", dest: "{{ home_dir }}/latest/conf/tomcat-users.xml"}
+      - {src: "manager-contaxt.xml", dest: "{{ home_dir }}/latest/webapps/manager/META-INF/context.xml"}
+      - {src: "hostmanager-contaxt.xml", dest: "{{ home_dir }}/latest/webapps/host-manager/META-INF/context.xml"}
+     notify:
+     - restart tomcat
+  handlers:
+   - name: restart tomcat
+     ansible.builtin.systemd:
+      name: tomcat.service
+      state: restart
+   - name: execute permissions to shell files ## executable permission to all sh folders
+     cmd: "chmod +x /opt/tomcat/updated/bin/*.sh"
+     executable: "bin/bash"
+
+
