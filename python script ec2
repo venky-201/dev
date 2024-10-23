@@ -1,0 +1,54 @@
+import boto3 
+def get_client(region='ap-south-1'): #(region='ap-south-1') (region:str)
+
+ return boto3.client('ec2',region_name=region)
+
+def start_ec2(instance_id:str,region='ap-south-1') ->none:
+
+    client=get_client(region)
+    responce=client.start_instance(
+        instanceids=[instance_id]
+    )
+    state= responce['StartingInstances'][0]['CurrentState']['Name']
+    print(f"instance with id {instance_ids} is in {state} state ")
+ 
+
+def stop_ec2(instanceid:str,region='ap-south-1' ) ->none:
+  client=get_client(region)
+  responce=client.stop_instance(
+        instanceids=[instance_id]
+  )
+  state=responce['StopingInstances'][0]['CurrentState'][ 'Name']
+  print(f"instance with id {instance_ids} is in {state} state ")
+
+def get_valid_regions():
+ regions_responce=get_client(region).describe_regions()
+ for region_responce in regions_responce['regions']:
+      yield region_responce['regionname']
+
+ def get_all_ec2_by_tag(tagname: str, tagvalue: str, action: str):
+
+    for region in get_valid_regions():
+    client= get_client(region)
+    instance_reponces= client.describe_instance(Filters=[
+        {
+            'Name': f"tag:{tagname}",
+            'Values': [
+                tagvalue,
+            ],
+        },
+    ])
+    if len(instance_reponces['Reservations']) == 0:
+      print(f"no instances present in {region}")
+        continue
+    for instance_reponce in instance_reponces['Reservations'][0]['Instances']:
+    instance_id = instance_reponce['InstanceId']
+    if action == 'start':
+        start_ec2(instance_id,region)
+    elif action == 'stop':
+        stop_ec2(instanceid,region)
+    
+
+ if __name__ == '__main__':
+    
+     
