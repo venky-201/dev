@@ -1,43 +1,67 @@
-
-resource "aws_security_group" "this" {
-  name        = var.security_group_info.name
-  description = var.security_group_info.description
-  vpc_id      = var.security_group_info.vpc_id
+resource "aws_vpc" "network" {
+  cidr_block = var.network_info.cidr
   tags = {
-    Name = var.security_group_info.name
+    Name = var.network_info.name
+  }
+}
+
+# private subnets
+resource "aws_subnet" "private" {
+  count             = length(var.private_subnets)
+  vpc_id            = aws_vpc.network.id
+  cidr_block        = var.private_subnets[count.index].cidr
+  availability_zone = var.private_subnets[count.index].az
+  tags = {
+    Name = var.private_subnets[count.index].name
   }
 
+  depends_on = [aws_vpc.network]
 }
 
-# inbound rules
-resource "aws_vpc_security_group_ingress_rule" "this" {
-  count             = length(var.security_group_info.inbound_rules)
-  security_group_id = aws_security_group.this.id
-  cidr_ipv4         = var.security_group_info.inbound_rules[count.index].cidr
-  from_port         = var.security_group_info.inbound_rules[count.index].port
-  to_port           = var.security_group_info.inbound_rules[count.index].port
-  ip_protocol       = var.security_group_info.inbound_rules[count.index].protocol
-  description       = var.security_group_info.inbound_rules[count.index].description
+# create internet gateway
 
-  depends_on = [aws_security_group.this]
+resource "aws_internet_gateway" "ntier" {
+  vpc_id = aws_vpc.network.id
+  tags = {
+    Name = "ntier"
+  }
+  depends_on = [aws_vpc.network]
 }
 
-resource "aws_vpc_security_group_egress_rule" "this" {
-  count             = length(var.security_group_info.outbound_rules)
-  security_group_id = aws_security_group.this.id
-  cidr_ipv4         = var.security_group_info.outbound_rules[count.index].cidr
-  description       = var.security_group_info.outbound_rules[count.index].description
-  from_port         = var.security_group_info.outbound_rules[count.index].from_port
-  to_port           = var.security_group_info.outbound_rules[count.index].to_port
-  ip_protocol       = var.security_group_info.outbound_rules[count.index].protocol
-  depends_on        = [aws_security_group.this]
+# create a public route table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.network.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.ntier.id
+  }
+  depends_on = [
+    aws_vpc.network,
+    aws_internet_gateway.ntier
+  ]
+}
+
+# public subnets
+resource "aws_subnet" "public" {
+  count             = length(var.public_subnets)
+  vpc_id            = aws_vpc.network.id
+  cidr_block        = var.public_subnets[count.index].cidr
+  availability_zone = var.public_subnets[count.index].az
+  tags = {
+    Name = var.public_subnets[count.index].name
+  }
+  depends_on = [aws_vpc.network]
 
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_all_egress" {
-  count             = var.security_group_info.allow_all_egress ? 1 : 0
-  security_group_id = aws_security_group.this.id
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1"
-  depends_on        = [aws_security_group.this]
+# associate public subnets with public route table
+resource "aws_route_table_association" "public" {
+  count          = length(var.public_subnets)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+  depends_on = [
+    aws_subnet.public,
+    aws_route_table.public
+  ]
 }

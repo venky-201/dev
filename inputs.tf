@@ -1,22 +1,27 @@
-variable "security_group_info" {
+variable "network_info" {
   type = object({
-    name        = string
-    description = string
-    vpc_id      = string
-    inbound_rules = list(object({
-      cidr        = string
-      port        = number
-      protocol    = string
-      description = string
-    }))
-    outbound_rules = list(object({
-      cidr        = string
-      from_port   = number
-      protocol    = string
-      description = string
-      to_port     = number
-    }))
-    allow_all_egress = bool
+    name = string
+    cidr = string
   })
-  description = "security group info"
+}
+
+variable "public_subnets" {
+  type = list(object({
+    name = string,
+    cidr = string,
+    az   = string
+    }
+  ))
+  description = "the public subnets"
+}
+
+variable "private_subnets" {
+  type = list(object({
+    name = string,
+    cidr = string,
+    az   = string
+    }
+  ))
+  description = "private subnets"
+
 }
