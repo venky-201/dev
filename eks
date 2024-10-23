@@ -1,0 +1,25 @@
+provider "aws" {
+  
+}
+
+resource "vpc" "this" {
+    cidr= "10.0.0.0/16"
+    discription= "crates a vpc"
+    tag={
+        name=cluster
+        Environment=dev
+    }
+}
+resource "aws_subnet" "this" {
+  vpc_id = vpc.this.id
+  cidr_block = ["10.0.1.0/24","10.0.2.0/24"]
+}
+
+resource "aws_eks_cluster" "this" {
+    name = "test_cluster"
+    vpc_config {
+      subnet_ids = [aws_subnet.this.id]
+    }
+    role_arn = "arn:aws:iam::533267283571:role/admin"
+  
+}
